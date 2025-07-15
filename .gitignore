@@ -1,0 +1,60 @@
+# 環境設定
+.env
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 測試相關
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+test.db
+test_*.py
+*_test.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日誌
+*.log
+logs/
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+# 臨時檔案
+tmp/
+temp/
+*.tmp
