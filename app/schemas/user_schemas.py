@@ -61,40 +61,7 @@ class TokenData(BaseModel):
 
 # 新增的 Schema 類別
 
-class UserSearchResponse(BaseModel):
-    """用戶搜尋結果回應"""
-    user_id: str
-    username: str
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    phone: str
-    role: UserRole
-    status: str
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
 
-class UserFilterRequest(BaseModel):
-    """用戶篩選條件請求"""
-    role: Optional[UserRole] = None
-    status: Optional[str] = None
-    created_after: Optional[datetime] = None
-    created_before: Optional[datetime] = None
-    skip: int = 0
-    limit: int = 100
-
-class UserStatsResponse(BaseModel):
-    """用戶統計資訊回應"""
-    total_users: int
-    active_users: int
-    inactive_users: int
-    customers: int
-    stylists: int
-    admins: int
-    new_users_this_month: int
-    new_users_today: int
 
 class UserStatusUpdate(BaseModel):
     """用戶狀態更新請求"""

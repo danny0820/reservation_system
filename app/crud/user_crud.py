@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, extract
+from sqlalchemy import func, extract
 from typing import Optional, List
-from datetime import datetime, timedelta
+
 from app.models.user_models import User
-from app.schemas.user_schemas import UserCreate, UserUpdate, UserFilterRequest
+from app.schemas.user_schemas import UserCreate, UserUpdate
 from app.auth import get_password_hash
 import uuid
 
@@ -215,81 +215,7 @@ class UserCRUD:
         """
         return db.query(User).filter(User.status == status).offset(skip).limit(limit).all()
 
-    def search_users(self, db: Session, keyword: str, skip: int = 0, limit: int = 100) -> List[User]:
-        """
-        關鍵字搜尋用戶。
 
-        :param db: Session, 資料庫會話。
-        :param keyword: str, 搜尋關鍵字。
-        :param skip: int, 跳過的記錄數。
-        :param limit: int, 返回的最大記錄數。
-        :return: List[User], 搜尋結果用戶列表。
-        """
-        search_filter = or_(
-            User.username.ilike(f"%{keyword}%"),
-            User.first_name.ilike(f"%{keyword}%"),
-            User.last_name.ilike(f"%{keyword}%"),
-            User.email.ilike(f"%{keyword}%"),
-            User.phone.ilike(f"%{keyword}%")
-        )
-        return db.query(User).filter(search_filter).offset(skip).limit(limit).all()
-
-    def filter_users(self, db: Session, filter_request: UserFilterRequest) -> List[User]:
-        """
-        多條件篩選用戶。
-
-        :param db: Session, 資料庫會話。
-        :param filter_request: UserFilterRequest, 篩選條件。
-        :return: List[User], 篩選結果用戶列表。
-        """
-        query = db.query(User)
-        
-        if filter_request.role:
-            query = query.filter(User.role == filter_request.role)
-        
-        if filter_request.status:
-            query = query.filter(User.status == filter_request.status)
-        
-        if filter_request.created_after:
-            query = query.filter(User.created_at >= filter_request.created_after)
-        
-        if filter_request.created_before:
-            query = query.filter(User.created_at <= filter_request.created_before)
-        
-        return query.offset(filter_request.skip).limit(filter_request.limit).all()
-
-    def get_user_stats(self, db: Session) -> dict:
-        """
-        獲取用戶統計資訊。
-
-        :param db: Session, 資料庫會話。
-        :return: dict, 用戶統計數據。
-        """
-        total_users = db.query(User).count()
-        active_users = db.query(User).filter(User.status == "active").count()
-        inactive_users = db.query(User).filter(User.status == "inactive").count()
-        customers = db.query(User).filter(User.role == "customer").count()
-        stylists = db.query(User).filter(User.role == "stylist").count()
-        admins = db.query(User).filter(User.role == "admin").count()
-        
-        # 計算本月新用戶
-        current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        new_users_this_month = db.query(User).filter(User.created_at >= current_month_start).count()
-        
-        # 計算今日新用戶
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        new_users_today = db.query(User).filter(User.created_at >= today_start).count()
-        
-        return {
-            "total_users": total_users,
-            "active_users": active_users,
-            "inactive_users": inactive_users,
-            "customers": customers,
-            "stylists": stylists,
-            "admins": admins,
-            "new_users_this_month": new_users_this_month,
-            "new_users_today": new_users_today
-        }
 
     def update_user_status(self, db: Session, user: User, new_status: str) -> User:
         """

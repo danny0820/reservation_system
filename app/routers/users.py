@@ -9,8 +9,7 @@ from app.core.config import settings
 from app.models.user_models import User
 from app.schemas.user_schemas import (
     UserCreate, UserSignup, UserUpdate, UserUpdatePassword, 
-    UserResponse, UserRoleAssignment, Token, UserSearchResponse,
-    UserFilterRequest, UserStatsResponse, UserStatusUpdate,
+    UserResponse, UserRoleAssignment, Token, UserStatusUpdate,
     LinkedAccountsResponse, PasswordResetRequest, VerificationRequest
 )
 from app.auth import (
@@ -230,83 +229,7 @@ async def get_users_by_status(
     users = user_crud.get_users_by_status(db, status, skip=skip, limit=limit)
     return users
 
-@router.get("/stylists", response_model=List[UserResponse], summary="獲取所有設計師", description="獲取所有設計師用戶列表")
-async def get_stylists(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    users = user_crud.get_users_by_role(db, "stylist", skip=skip, limit=limit)
-    return users
 
-@router.get("/customers", response_model=List[UserResponse], summary="獲取所有客戶", description="獲取所有客戶用戶列表")
-async def get_customers(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    users = user_crud.get_users_by_role(db, "customer", skip=skip, limit=limit)
-    return users
-
-@router.get("/admins", response_model=List[UserResponse], summary="獲取所有管理員", description="(管理員權限) 獲取所有管理員用戶列表")
-async def get_admins(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_admin_user)
-):
-    users = user_crud.get_users_by_role(db, "admin", skip=skip, limit=limit)
-    return users
-
-# 用戶搜尋與篩選 API
-
-@router.get("/search", response_model=List[UserSearchResponse], summary="關鍵字搜尋用戶", description="使用關鍵字搜尋用戶")
-async def search_users(
-    q: str = Query(..., description="搜尋關鍵字"),
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    users = user_crud.search_users(db, q, skip=skip, limit=limit)
-    return users
-
-@router.get("/filter", response_model=List[UserResponse], summary="多條件篩選用戶", description="根據多個條件篩選用戶")
-async def filter_users(
-    role: Optional[str] = Query(None, description="用戶角色"),
-    status: Optional[str] = Query(None, description="用戶狀態"),
-    created_after: Optional[str] = Query(None, description="創建時間起始（YYYY-MM-DD）"),
-    created_before: Optional[str] = Query(None, description="創建時間結束（YYYY-MM-DD）"),
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    from datetime import datetime
-    from app.models.user_models import UserRole
-    
-    # 構建篩選請求
-    filter_request = UserFilterRequest(
-        role=UserRole(role) if role else None,
-        status=status,
-        created_after=datetime.fromisoformat(created_after) if created_after else None,
-        created_before=datetime.fromisoformat(created_before) if created_before else None,
-        skip=skip,
-        limit=limit
-    )
-    
-    users = user_crud.filter_users(db, filter_request)
-    return users
-
-@router.get("/stats", response_model=UserStatsResponse, summary="用戶統計資訊", description="(管理員權限) 獲取用戶統計資訊")
-async def get_user_stats(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_admin_user)
-):
-    stats = user_crud.get_user_stats(db)
-    return stats
 
 # 進階用戶管理 API
 
