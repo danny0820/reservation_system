@@ -2,7 +2,10 @@ from app.database import create_tables
 from app.core.config import settings
 
 def main():
-    """創建資料庫表並啟動應用程序"""
+    """
+    主要函式，用於創建資料庫表。
+    連接到資料庫並調用 create_tables() 來初始化表結構。
+    """
     print(f"正在連接到資料庫: {settings.DATABASE_URL}")
     try:
         create_tables()

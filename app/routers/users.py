@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import timedelta
 
 from app.database import get_db
@@ -9,7 +9,9 @@ from app.core.config import settings
 from app.models.user_models import User
 from app.schemas.user_schemas import (
     UserCreate, UserSignup, UserUpdate, UserUpdatePassword, 
-    UserResponse, UserRoleAssignment, Token
+    UserResponse, UserRoleAssignment, Token, UserSearchResponse,
+    UserFilterRequest, UserStatsResponse, UserStatusUpdate,
+    LinkedAccountsResponse, PasswordResetRequest, VerificationRequest
 )
 from app.auth import (
     authenticate_user, create_access_token, 
@@ -203,3 +205,213 @@ async def assign_user_role(
         )
     
     return user_crud.update_user_role(db, user, role_assignment.role)
+
+# 角色與狀態查詢 API
+
+@router.get("/role/{role}", response_model=List[UserResponse], summary="獲取指定角色用戶", description="根據角色獲取用戶列表")
+async def get_users_by_role(
+    role: str,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    users = user_crud.get_users_by_role(db, role, skip=skip, limit=limit)
+    return users
+
+@router.get("/status/{status}", response_model=List[UserResponse], summary="獲取指定狀態用戶", description="根據狀態獲取用戶列表")
+async def get_users_by_status(
+    status: str,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    users = user_crud.get_users_by_status(db, status, skip=skip, limit=limit)
+    return users
+
+@router.get("/stylists", response_model=List[UserResponse], summary="獲取所有設計師", description="獲取所有設計師用戶列表")
+async def get_stylists(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    users = user_crud.get_users_by_role(db, "stylist", skip=skip, limit=limit)
+    return users
+
+@router.get("/customers", response_model=List[UserResponse], summary="獲取所有客戶", description="獲取所有客戶用戶列表")
+async def get_customers(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    users = user_crud.get_users_by_role(db, "customer", skip=skip, limit=limit)
+    return users
+
+@router.get("/admins", response_model=List[UserResponse], summary="獲取所有管理員", description="(管理員權限) 獲取所有管理員用戶列表")
+async def get_admins(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    users = user_crud.get_users_by_role(db, "admin", skip=skip, limit=limit)
+    return users
+
+# 用戶搜尋與篩選 API
+
+@router.get("/search", response_model=List[UserSearchResponse], summary="關鍵字搜尋用戶", description="使用關鍵字搜尋用戶")
+async def search_users(
+    q: str = Query(..., description="搜尋關鍵字"),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    users = user_crud.search_users(db, q, skip=skip, limit=limit)
+    return users
+
+@router.get("/filter", response_model=List[UserResponse], summary="多條件篩選用戶", description="根據多個條件篩選用戶")
+async def filter_users(
+    role: Optional[str] = Query(None, description="用戶角色"),
+    status: Optional[str] = Query(None, description="用戶狀態"),
+    created_after: Optional[str] = Query(None, description="創建時間起始（YYYY-MM-DD）"),
+    created_before: Optional[str] = Query(None, description="創建時間結束（YYYY-MM-DD）"),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    from datetime import datetime
+    from app.models.user_models import UserRole
+    
+    # 構建篩選請求
+    filter_request = UserFilterRequest(
+        role=UserRole(role) if role else None,
+        status=status,
+        created_after=datetime.fromisoformat(created_after) if created_after else None,
+        created_before=datetime.fromisoformat(created_before) if created_before else None,
+        skip=skip,
+        limit=limit
+    )
+    
+    users = user_crud.filter_users(db, filter_request)
+    return users
+
+@router.get("/stats", response_model=UserStatsResponse, summary="用戶統計資訊", description="(管理員權限) 獲取用戶統計資訊")
+async def get_user_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    stats = user_crud.get_user_stats(db)
+    return stats
+
+# 進階用戶管理 API
+
+@router.post("/{user_id}/status", response_model=UserResponse, summary="更改用戶狀態", description="(管理員權限) 更改指定用戶的狀態")
+async def change_user_status(
+    user_id: str,
+    status_update: UserStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    user = user_crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user_crud.update_user_status(db, user, status_update.status)
+
+@router.post("/{user_id}/activate", response_model=UserResponse, summary="啟用用戶", description="(管理員權限) 啟用指定用戶")
+async def activate_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    user = user_crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user_crud.update_user_status(db, user, "active")
+
+@router.post("/{user_id}/deactivate", response_model=UserResponse, summary="停用用戶", description="(管理員權限) 停用指定用戶")
+async def deactivate_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    user = user_crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user_crud.update_user_status(db, user, "inactive")
+
+# 用戶關係管理 API
+
+@router.get("/{user_id}/linked-accounts", response_model=LinkedAccountsResponse, summary="查看連結的第三方帳號", description="查看指定用戶的第三方帳號連結狀態")
+async def get_linked_accounts(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    accounts = user_crud.get_linked_accounts(db, user_id)
+    if not accounts:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return accounts
+
+@router.post("/{user_id}/send-verification", response_model=dict, summary="發送驗證信", description="為指定用戶發送驗證信")
+async def send_verification(
+    user_id: str,
+    verification_request: VerificationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    user = user_crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # 這裡可以實現實際的驗證信發送邏輯
+    # 目前回傳成功訊息
+    verification_type = "email" if verification_request.email else "phone"
+    return {
+        "message": f"Verification {verification_type} sent successfully",
+        "user_id": user_id,
+        "verification_type": verification_type
+    }
+
+@router.post("/{user_id}/reset-password", response_model=dict, summary="重置密碼", description="重置指定用戶的密碼")
+async def reset_password(
+    user_id: str,
+    password_reset: PasswordResetRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    user = user_crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    user_crud.reset_user_password(db, user, password_reset.new_password)
+    return {
+        "message": "Password reset successfully",
+        "user_id": user_id
+    }

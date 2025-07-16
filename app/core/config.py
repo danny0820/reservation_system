@@ -3,6 +3,10 @@ from typing import Optional, List
 import os
 
 class Settings(BaseSettings):
+    """
+    應用程式的組態設定。
+    使用 Pydantic 的 BaseSettings 來從環境變數或 .env 檔案中讀取設定。
+    """
     # 資料庫設定
     DATABASE_URL: str = "sqlite:///./app.db"
     
