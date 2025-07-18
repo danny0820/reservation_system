@@ -10,18 +10,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 開發與測試
 ```bash
-# 啟動服務
-uvicorn main:app --reload --port 8080
-
 # 安裝依賴
 pip install -r requirements.txt
 
 # 創建資料庫表
 python create_tables.py
 
-# 測試命令（如果有測試文件）
-pytest
-pytest --cov=app  # 代碼覆蓋率測試
+# 啟動服務
+uvicorn main:app --reload --port 8080
+
+# 測試命令
+pytest                          # 運行所有測試
+pytest -v                       # 詳細輸出
+pytest --cov=app                # 代碼覆蓋率測試
+pytest tests/unit/              # 只運行單元測試
+pytest tests/integration/       # 只運行集成測試
+pytest -m unit                  # 運行標記為 unit 的測試
+pytest -m integration           # 運行標記為 integration 的測試
+pytest tests/unit/test_users.py::test_specific_function  # 運行特定測試
 ```
 
 ### 檢查與格式化
@@ -56,9 +62,10 @@ python -m flake8 app/
 
 ### 資料庫設計
 - 使用 SQLAlchemy ORM 與 MySQL 資料庫
-- 支援測試環境的 SQLite 切換
+- 支援測試環境的 SQLite 切換（設定 `TESTING=1` 環境變數）
 - 完整的使用者管理系統（認證、角色、個人資料）
 - 為未來模組預留了資料庫結構（預約、訂單、排班、優惠券）
+- 使用 `create_tables.py` 進行資料庫初始化
 
 ### 功能導航
 參考 `FEATURE_NAVIGATION.md` 文件了解：
@@ -71,10 +78,12 @@ python -m flake8 app/
 
 ### 環境變數
 核心配置在 `app/core/config.py`：
-- `DATABASE_URL`: 資料庫連接字串
-- `SECRET_KEY`: JWT 金鑰（生產環境需更改）
-- `ACCESS_TOKEN_EXPIRE_MINUTES`: 令牌過期時間
+- `DATABASE_URL`: 資料庫連接字串（預設: `sqlite:///./app.db`）
+- `SECRET_KEY`: JWT 金鑰（預設: `your-secret-key-change-this-in-production`）
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: 令牌過期時間（預設: 30 分鐘）
 - `ENVIRONMENT`: 運行環境（development/production）
+- `TESTING`: 測試環境標誌（設定為 1 時使用 SQLite）
+- `DEBUG`: 除錯模式（development 環境自動啟用）
 
 ### 安全設定
 - 所有密碼使用 bcrypt 哈希
@@ -98,14 +107,20 @@ python -m flake8 app/
 ### 程式碼結構約定
 - 所有資料庫操作透過 CRUD 類進行
 - API 端點使用 Pydantic 模型進行請求/回應驗證
-- 認證使用 `get_current_user` 或 `get_admin_user` 依賴
+- 認證使用 `get_current_user`、`get_current_active_user` 或 `get_admin_user` 依賴
 - 錯誤處理使用 FastAPI 的 `HTTPException`
+- 密碼使用 bcrypt 進行哈希處理（`get_password_hash`、`verify_password`）
+- JWT 令牌生成和驗證（`create_access_token`、`get_current_user`）
 
 ### 測試策略
 - 單元測試覆蓋率目標 88%
 - 使用 pytest 和 httpx 進行 API 測試
-- 測試環境自動使用 SQLite 資料庫
-- 測試檔案應建立在 `tests/` 目錄
+- 測試環境自動使用 SQLite 資料庫（設定 `TESTING=1`）
+- 測試檔案結構：
+  - `tests/unit/` - 單元測試（標記為 `@pytest.mark.unit`）
+  - `tests/integration/` - 集成測試（標記為 `@pytest.mark.integration`）
+  - `tests/conftest.py` - 測試配置和共用 fixtures
+- 測試配置在 `pytest.ini` 中定義
 
 ## 預定擴展模組
 
@@ -117,3 +132,45 @@ python -m flake8 app/
 - 優惠券系統 (`coupon`)
 
 新增模組時應遵循現有的架構模式，在對應目錄建立 models, schemas, crud, routers 檔案。
+
+## 快速開發指南
+
+### 啟動開發環境
+```bash
+# 1. 安裝依賴
+pip install -r requirements.txt
+
+# 2. 創建資料庫表
+python create_tables.py
+
+# 3. 啟動開發服務器
+uvicorn main:app --reload --port 8080
+```
+
+### 測試開發環境
+```bash
+# 設定測試環境
+export TESTING=1
+
+# 運行測試
+pytest -v --cov=app
+
+# 運行特定測試
+pytest tests/unit/test_users.py -v
+```
+
+### 默認管理員帳號
+- 用戶名: `admin`
+- 密碼: `admin123`
+- 角色: `admin`
+
+### API 文檔
+- Swagger UI: http://localhost:8080/docs
+- ReDoc: http://localhost:8080/redoc
+
+### 關鍵文件說明
+- `main.py`: FastAPI 應用程式入口點，包含 CORS 設置和路由配置
+- `create_tables.py`: 資料庫初始化腳本，可選擇性啟動 uvicorn 服務
+- `app/auth.py`: 完整的認證系統，包含密碼哈希、JWT 令牌和權限驗證
+- `app/database.py`: 資料庫連接和會話管理，支援測試環境切換
+- `app/core/config.py`: 使用 Pydantic Settings 的配置管理系統

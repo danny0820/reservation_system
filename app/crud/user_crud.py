@@ -41,16 +41,18 @@ class UserCRUD:
         """
         return db.query(User).filter(User.email == email).first()
     
-    def get_users(self, db: Session, skip: int = 0, limit: int = 100) -> List[User]:
+    def get_users(self, db: Session, skip: int = 0, limit: int = 100):
         """
         獲取使用者列表（分頁）。
 
         :param db: Session, 資料庫會話。
         :param skip: int, 跳過的記錄數。
         :param limit: int, 返回的最大記錄數。
-        :return: List[User], 使用者列表。
+        :return: Tuple[List[User], int], 使用者列表和總數。
         """
-        return db.query(User).offset(skip).limit(limit).all()
+        total = db.query(User).count()
+        users = db.query(User).offset(skip).limit(limit).all()
+        return users, total
     
     def create_user(self, db: Session, user: UserCreate) -> User:
         """
@@ -122,7 +124,7 @@ class UserCRUD:
         :param user_update: UserUpdate, 更新的數據。
         :return: User, 更新後的使用者。
         """
-        update_data = user_update.dict(exclude_unset=True)
+        update_data = user_update.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(user, field, value)
         db.commit()

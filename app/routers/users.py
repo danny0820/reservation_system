@@ -42,7 +42,7 @@ async def get_all_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_admin_user)
 ):
-    users = user_crud.get_users(db, skip=skip, limit=limit)
+    users, total = user_crud.get_users(db, skip=skip, limit=limit)
     return users
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="創建新用戶", description="(管理員權限) 在系統中創建一個新的用戶帳號")
