@@ -45,8 +45,6 @@ class StylistSchedulesUpdate(BaseModel):
 
 class StylistSchedulesResponse(StylistSchedulesBase):
     schedule_id: str
-    created_at: datetime
-    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -54,6 +52,7 @@ class StylistSchedulesResponse(StylistSchedulesBase):
 
 class StylistTimeOffBase(BaseModel):
     stylist_id: str = Field(..., description="設計師 ID")
+
     start_datetime: datetime = Field(..., description="請假開始時間")
     end_datetime: datetime = Field(..., description="請假結束時間")
     reason: Optional[str] = Field(None, description="請假原因")
@@ -66,7 +65,11 @@ class StylistTimeOffBase(BaseModel):
 
     @validator("start_datetime")
     def validate_start_datetime(cls, v):
-        if v < datetime.now():
+        from app.utils.timezone_utils import now_utc8, ensure_utc8
+        current_time = now_utc8()
+        # 確保兩個時間都具有相同的時區信息進行比較
+        v_with_tz = ensure_utc8(v)
+        if v_with_tz < current_time:
             raise ValueError("開始時間不能早於當前時間")
         return v
 
@@ -79,7 +82,6 @@ class StylistTimeOffUpdate(BaseModel):
     start_datetime: Optional[datetime] = Field(None, description="請假開始時間")
     end_datetime: Optional[datetime] = Field(None, description="請假結束時間")
     reason: Optional[str] = Field(None, description="請假原因")
-    status: Optional[TimeOffStatus] = Field(None, description="請假狀態")
 
     @validator("end_datetime")
     def validate_end_datetime(cls, v, values):
@@ -91,18 +93,15 @@ class StylistTimeOffUpdate(BaseModel):
 
 class StylistTimeOffResponse(StylistTimeOffBase):
     time_off_id: str
-    status: TimeOffStatus
-    created_at: datetime
-    updated_at: datetime
 
     class Config:
         from_attributes = True
 
 
-class StylistTimeOffStatusUpdate(BaseModel):
-    """請假狀態更新專用模型"""
-
-    status: TimeOffStatus = Field(..., description="請假狀態")
+# 由於資料庫表中沒有 status 字段，暫時移除此模型
+# class StylistTimeOffStatusUpdate(BaseModel):
+#     """請假狀態更新專用模型"""
+#     status: TimeOffStatus = Field(..., description="請假狀態")
 
 
 class WeeklyStylistScheduleResponse(BaseModel):

@@ -28,6 +28,10 @@ pytest tests/integration/       # 只運行集成測試
 pytest -m unit                  # 運行標記為 unit 的測試
 pytest -m integration           # 運行標記為 integration 的測試
 pytest tests/unit/test_users.py::test_specific_function  # 運行特定測試
+
+# 測試環境設定
+export TESTING=1                # 使用 SQLite 測試資料庫
+pytest -v --cov=app --cov-report=html  # 生成 HTML 覆蓋率報告
 ```
 
 ### 檢查與格式化
@@ -174,3 +178,42 @@ pytest tests/unit/test_users.py -v
 - `app/auth.py`: 完整的認證系統，包含密碼哈希、JWT 令牌和權限驗證
 - `app/database.py`: 資料庫連接和會話管理，支援測試環境切換
 - `app/core/config.py`: 使用 Pydantic Settings 的配置管理系統
+- `requirements.txt`: 專案依賴列表，包含 FastAPI、SQLAlchemy、JWT 等核心套件
+- `pytest.ini`: 測試配置文件，定義測試標記和過濾規則
+- `schema.sql`: 資料庫結構定義檔案，用於參考完整的資料庫設計
+
+## 當前系統狀態
+
+### 已部署模組
+- 用戶管理模組：✅ 完全部署
+- 商品管理模組：✅ 完全部署  
+- 排程管理模組：✅ 完全部署
+- 門店管理模組：✅ 完全部署
+
+### 下一步開發重點
+根據 README.md v2.1.0 的開發計劃：
+1. **客戶預約管理系統** - 核心預約功能
+2. **統計報表系統** - 營收和績效分析
+3. **通知系統** - 郵件和訊息推送
+4. **前端界面優化** - 用戶體驗改善
+
+### 新增模組開發指南
+在 `main.py` 中註冊新模組：
+```python
+# 在 main.py 中添加路由註冊
+app.include_router(new_module.router, prefix="/new-module", tags=["new-module"])
+```
+
+### 系統版本
+- 當前版本：v2.1.1 (生產就緒)
+- 最後更新：2025-07-19
+
+### 最新修復 (v2.1.1)
+- **資料庫結構修復**：修復 StoreClosures 表缺少 created_at 和 updated_at 欄位
+- **營業時間驗證邏輯**：修復公休日設定的驗證問題
+- **API 回應驗證**：修復門店營業時間查詢回應錯誤
+
+### 已知修復的問題
+1. **StoreClosures 表結構**：已添加缺少的時間戳欄位
+2. **營業時間驗證**：公休日設定時自動清空營業時間，避免驗證衝突
+3. **Schema 驗證邏輯**：將必填驗證只應用於創建操作，不影響查詢回應

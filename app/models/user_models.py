@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Enum, DateTime, Boolean
 from sqlalchemy.sql import func
 from app.database import Base
+from app.utils.timezone_utils import get_current_timestamp
 import enum
 
 class UserRole(str, enum.Enum):
@@ -32,5 +33,5 @@ class User(Base):
     line_uid = Column(String(100), unique=True, nullable=True, comment="Line UID")
     status = Column(String(50), nullable=False, comment="使用者狀態")
     notification = Column(String(50), nullable=True, comment="通知設定")
-    created_at = Column(DateTime, nullable=False, default=func.now(), comment="創建時間")
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now(), comment="更新時間")
+    created_at = Column(DateTime, nullable=False, default=get_current_timestamp, comment="創建時間")
+    updated_at = Column(DateTime, nullable=False, default=get_current_timestamp, onupdate=get_current_timestamp, comment="更新時間")

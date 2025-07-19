@@ -11,6 +11,7 @@ from app.schemas.schedule_schemas import (
     StylistTimeOffUpdate,
     TimeOffStatus,
 )
+from app.utils.timezone_utils import ensure_utc8, UTC_8
 import uuid
 
 
@@ -183,7 +184,6 @@ class ScheduleCRUD:
         stylist_id: str,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
-        status: Optional[TimeOffStatus] = None,
     ) -> List[StylistTimeOff]:
         """
         獲取設計師的請假記錄。
@@ -192,21 +192,16 @@ class ScheduleCRUD:
         :param stylist_id: str, 設計師 ID。
         :param start_date: Optional[date], 查詢開始日期。
         :param end_date: Optional[date], 查詢結束日期。
-        :param status: Optional[TimeOffStatus], 請假狀態篩選。
         :return: List[StylistTimeOff], 請假記錄列表。
         """
         query = db.query(StylistTimeOff).filter(StylistTimeOff.stylist_id == stylist_id)
 
         if start_date:
-            query = query.filter(
-                StylistTimeOff.end_datetime >= datetime.combine(start_date, time.min)
-            )
+            start_datetime_filter = ensure_utc8(datetime.combine(start_date, time.min))
+            query = query.filter(StylistTimeOff.end_datetime >= start_datetime_filter)
         if end_date:
-            query = query.filter(
-                StylistTimeOff.start_datetime <= datetime.combine(end_date, time.max)
-            )
-        if status:
-            query = query.filter(StylistTimeOff.status == status)
+            end_datetime_filter = ensure_utc8(datetime.combine(end_date, time.max))
+            query = query.filter(StylistTimeOff.start_datetime <= end_datetime_filter)
 
         return query.order_by(StylistTimeOff.start_datetime).all()
 
@@ -220,8 +215,13 @@ class ScheduleCRUD:
         :param time_off_data: StylistTimeOffCreate, 請假數據。
         :return: StylistTimeOff, 創建的請假記錄。
         """
+        # 確保日期時間具有正確的時區信息
+        time_off_dict = time_off_data.dict()
+        time_off_dict['start_datetime'] = ensure_utc8(time_off_dict['start_datetime'])
+        time_off_dict['end_datetime'] = ensure_utc8(time_off_dict['end_datetime'])
+        
         db_time_off = StylistTimeOff(
-            time_off_id=str(uuid.uuid4()), **time_off_data.dict(), status="pending"
+            time_off_id=str(uuid.uuid4()), **time_off_dict
         )
         db.add(db_time_off)
         db.commit()
@@ -243,6 +243,12 @@ class ScheduleCRUD:
         :return: StylistTimeOff, 更新後的請假記錄。
         """
         update_data = time_off_update.dict(exclude_unset=True)
+        # 確保日期時間字段具有正確的時區信息
+        if 'start_datetime' in update_data and update_data['start_datetime'] is not None:
+            update_data['start_datetime'] = ensure_utc8(update_data['start_datetime'])
+        if 'end_datetime' in update_data and update_data['end_datetime'] is not None:
+            update_data['end_datetime'] = ensure_utc8(update_data['end_datetime'])
+            
         for field, value in update_data.items():
             setattr(time_off, field, value)
 
@@ -250,21 +256,7 @@ class ScheduleCRUD:
         db.refresh(time_off)
         return time_off
 
-    def update_time_off_status(
-        self, db: Session, time_off: StylistTimeOff, status: TimeOffStatus
-    ) -> StylistTimeOff:
-        """
-        更新請假狀態。
-
-        :param db: Session, 資料庫會話。
-        :param time_off: StylistTimeOff, 要更新的請假記錄。
-        :param status: TimeOffStatus, 新狀態。
-        :return: StylistTimeOff, 更新後的請假記錄。
-        """
-        setattr(time_off, "status", status)
-        db.commit()
-        db.refresh(time_off)
-        return time_off
+# update_time_off_status 方法已移除，因為資料庫表中沒有 status 字段
 
     def delete_time_off(self, db: Session, time_off: StylistTimeOff) -> bool:
         """
@@ -283,7 +275,6 @@ class ScheduleCRUD:
         db: Session,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
-        status: Optional[TimeOffStatus] = None,
     ) -> List[StylistTimeOff]:
         """
         獲取所有設計師的請假記錄。
@@ -291,21 +282,16 @@ class ScheduleCRUD:
         :param db: Session, 資料庫會話。
         :param start_date: Optional[date], 查詢開始日期。
         :param end_date: Optional[date], 查詢結束日期。
-        :param status: Optional[TimeOffStatus], 請假狀態篩選。
         :return: List[StylistTimeOff], 請假記錄列表。
         """
         query = db.query(StylistTimeOff)
 
         if start_date:
-            query = query.filter(
-                StylistTimeOff.end_datetime >= datetime.combine(start_date, time.min)
-            )
+            start_datetime_filter = ensure_utc8(datetime.combine(start_date, time.min))
+            query = query.filter(StylistTimeOff.end_datetime >= start_datetime_filter)
         if end_date:
-            query = query.filter(
-                StylistTimeOff.start_datetime <= datetime.combine(end_date, time.max)
-            )
-        if status:
-            query = query.filter(StylistTimeOff.status == status)
+            end_datetime_filter = ensure_utc8(datetime.combine(end_date, time.max))
+            query = query.filter(StylistTimeOff.start_datetime <= end_datetime_filter)
 
         return query.order_by(StylistTimeOff.start_datetime).all()
 
@@ -322,13 +308,14 @@ class ScheduleCRUD:
         :param check_datetime: datetime, 檢查的時間點。
         :return: bool, 是否可用。
         """
-        # 檢查是否有批准的請假
+        # 檢查是否有請假
+        # 確保比較的 datetime 物件具有相同的時區信息
+        check_datetime = ensure_utc8(check_datetime)
         time_offs = (
             db.query(StylistTimeOff)
             .filter(
                 and_(
                     StylistTimeOff.stylist_id == stylist_id,
-                    StylistTimeOff.status == "approved",
                     StylistTimeOff.start_datetime <= check_datetime,
                     StylistTimeOff.end_datetime >= check_datetime,
                 )
@@ -376,13 +363,12 @@ class ScheduleCRUD:
             stylist_id,
             start_date=target_date,
             end_date=target_date,
-            status=TimeOffStatus.approved,
         )
 
         # 生成時間段
         available_slots = []
-        current_time = datetime.combine(target_date, schedule.start_time)
-        end_time = datetime.combine(target_date, schedule.end_time)
+        current_time = ensure_utc8(datetime.combine(target_date, schedule.start_time))
+        end_time = ensure_utc8(datetime.combine(target_date, schedule.end_time))
 
         while current_time + timedelta(minutes=slot_duration) <= end_time:
             slot_end = current_time + timedelta(minutes=slot_duration)
@@ -399,8 +385,8 @@ class ScheduleCRUD:
                     {
                         "start_time": current_time.strftime("%H:%M"),
                         "end_time": slot_end.strftime("%H:%M"),
-                        "start_datetime": current_time,
-                        "end_datetime": slot_end,
+                        "start_date": current_time,
+                        "end_date": slot_end,
                     }
                 )
 

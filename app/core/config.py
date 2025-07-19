@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # 密碼設定
     MIN_PASSWORD_LENGTH: int = 6
     
+    # 時區設定
+    TIMEZONE: str = "Asia/Taipei"  # UTC+8
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

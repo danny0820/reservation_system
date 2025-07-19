@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, Time, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
 from app.database import Base
+from app.utils.timezone_utils import get_current_timestamp
 
 
 class StylistSchedules(Base):
@@ -23,16 +24,6 @@ class StylistSchedules(Base):
     )
     start_time = Column(Time, nullable=False, comment="開始工作時間")
     end_time = Column(Time, nullable=False, comment="結束工作時間")
-    created_at = Column(
-        DateTime, nullable=False, default=func.now(), comment="創建時間"
-    )
-    updated_at = Column(
-        DateTime,
-        nullable=False,
-        default=func.now(),
-        onupdate=func.now(),
-        comment="更新時間",
-    )
 
 
 class StylistTimeOff(Base):
@@ -53,19 +44,3 @@ class StylistTimeOff(Base):
     start_datetime = Column(DateTime, nullable=False, comment="請假開始時間")
     end_datetime = Column(DateTime, nullable=False, comment="請假結束時間")
     reason = Column(Text, nullable=True, comment="請假原因")
-    status = Column(
-        String(50),
-        nullable=False,
-        default="pending",
-        comment="請假狀態 (pending, approved, rejected)",
-    )
-    created_at = Column(
-        DateTime, nullable=False, default=func.now(), comment="創建時間"
-    )
-    updated_at = Column(
-        DateTime,
-        nullable=False,
-        default=func.now(),
-        onupdate=func.now(),
-        comment="更新時間",
-    )

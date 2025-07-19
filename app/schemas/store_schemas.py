@@ -20,13 +20,21 @@ class StoreBusinessHoursBase(BaseModel):
 
     @validator("is_closed")
     def validate_closed_day(cls, v, values):
-        if v and ("open_time" in values and values["open_time"]):
-            raise ValueError("公休日不能設定營業時間")
+        # 如果設定為公休日，自動清空營業時間
+        if v:
+            values["open_time"] = None
+            values["close_time"] = None
         return v
 
 
+
 class StoreBusinessHoursCreate(StoreBusinessHoursBase):
-    pass
+    @validator("open_time")
+    def validate_open_time_required(cls, v, values):
+        # 如果不是公休日，則營業時間為必填
+        if not values.get("is_closed", False) and v is None:
+            raise ValueError("非公休日必須設定開始營業時間")
+        return v
 
 
 class StoreBusinessHoursUpdate(BaseModel):
@@ -39,6 +47,14 @@ class StoreBusinessHoursUpdate(BaseModel):
         if "open_time" in values and values["open_time"] and v:
             if v <= values["open_time"]:
                 raise ValueError("結束營業時間必須晚於開始營業時間")
+        return v
+
+    @validator("is_closed")
+    def validate_closed_day_update(cls, v, values):
+        # 如果設定為公休日，自動清空營業時間
+        if v:
+            values["open_time"] = None
+            values["close_time"] = None
         return v
 
 

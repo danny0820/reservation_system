@@ -13,8 +13,6 @@ from app.schemas.schedule_schemas import (
     StylistTimeOffCreate,
     StylistTimeOffUpdate,
     StylistTimeOffResponse,
-    StylistTimeOffStatusUpdate,
-    TimeOffStatus,
     WeeklyStylistScheduleResponse,
     StylistAvailabilityResponse,
     ScheduleConflictResponse,
@@ -259,7 +257,6 @@ async def get_time_off_records(
     stylist_id: Optional[str] = Query(None, description="設計師ID篩選"),
     start_date: Optional[date] = Query(None, description="查詢開始日期"),
     end_date: Optional[date] = Query(None, description="查詢結束日期"),
-    time_off_status: Optional[TimeOffStatus] = Query(None, description="請假狀態篩選"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -280,12 +277,12 @@ async def get_time_off_records(
             )
 
         time_offs = schedule_crud.get_stylist_time_offs(
-            db, stylist_id, start_date=start_date, end_date=end_date, status=time_off_status
+            db, stylist_id, start_date=start_date, end_date=end_date
         )
     else:
         # 管理員查看所有請假記錄
         time_offs = schedule_crud.get_all_time_offs(
-            db, start_date=start_date, end_date=end_date, status=time_off_status
+            db, start_date=start_date, end_date=end_date
         )
 
     return time_offs
@@ -318,32 +315,12 @@ async def update_time_off_record(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
 
-    # 非管理員不能修改狀態
-    if current_user.role not in ["admin"] and time_off_update.status is not None:
-        time_off_update.status = None
+    # status 字段已移除
 
     return schedule_crud.update_time_off(db, time_off, time_off_update)
 
 
-@router.patch(
-    "/time-off/{time_off_id}/status",
-    response_model=StylistTimeOffResponse,
-    summary="更新請假狀態",
-    description="(管理員權限) 批准或拒絕請假申請",
-)
-async def update_time_off_status(
-    time_off_id: str,
-    status_update: StylistTimeOffStatusUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_admin_user),
-):
-    time_off = schedule_crud.get_time_off_by_id(db, time_off_id)
-    if not time_off:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Time off record not found"
-        )
-
-    return schedule_crud.update_time_off_status(db, time_off, status_update.status)
+# update_time_off_status 路由已移除，因為資料庫表中沒有 status 字段
 
 
 @router.delete(

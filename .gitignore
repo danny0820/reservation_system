@@ -58,3 +58,21 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# 資料庫相關
+app.db
+*.db
+*.sqlite
+*.sqlite3
+
+# 修復腳本
+fix_*.sql
+
+# 上傳檔案
+uploads/
+static/uploads/
+
+# 設定檔案
+.env.local
+.env.production
+config.local.json

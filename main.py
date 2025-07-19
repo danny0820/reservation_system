@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users, products
+from app.routers import users, products, schedules, store
 from app.core.config import settings
 
 # 初始化 FastAPI 應用
@@ -24,6 +24,12 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 
 # 引入產品路由
 app.include_router(products.router, prefix="/products", tags=["products"])
+
+# 引入排程路由
+app.include_router(schedules.router, prefix="/schedules", tags=["schedules"])
+
+# 引入門店路由
+app.include_router(store.router, prefix="/store", tags=["store"])
 
 @app.get("/")
 async def root():

@@ -1,5 +1,7 @@
 from app.database import create_tables
 from app.core.config import settings
+# 匯入所有模型以確保表能被正確創建
+from app.models import user_models, product_models, schedule_models, store_models
 
 def main():
     """

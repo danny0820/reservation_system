@@ -4,7 +4,9 @@
       "Bash(python:*)",
       "Bash(pip uninstall:*)",
       "Bash(set TESTING=1)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

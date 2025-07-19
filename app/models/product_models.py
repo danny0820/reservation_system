@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, Boolean, Text, DateTime
 from sqlalchemy.sql import func
 from app.database import Base
+from app.utils.timezone_utils import get_current_timestamp
 
 
 class Product(Base):
@@ -22,12 +23,12 @@ class Product(Base):
         Boolean, nullable=False, default=False, comment="是否為服務項目"
     )
     created_at = Column(
-        DateTime, nullable=False, default=func.now(), comment="創建時間"
+        DateTime, nullable=False, default=get_current_timestamp, comment="創建時間"
     )
     updated_at = Column(
         DateTime,
         nullable=False,
-        default=func.now(),
-        onupdate=func.now(),
+        default=get_current_timestamp,
+        onupdate=get_current_timestamp,
         comment="更新時間",
     )

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, Boolean, Time, DateTime, Text
 from sqlalchemy.sql import func
 from app.database import Base
+from app.utils.timezone_utils import get_current_timestamp
 
 
 class StoreBusinessHours(Base):
@@ -35,12 +36,12 @@ class StoreClosures(Base):
     end_datetime = Column(DateTime, nullable=False, comment="休業結束時間")
     reason = Column(Text, nullable=True, comment="休業原因")
     created_at = Column(
-        DateTime, nullable=False, default=func.now(), comment="創建時間"
+        DateTime, nullable=False, default=get_current_timestamp, comment="創建時間"
     )
     updated_at = Column(
         DateTime,
         nullable=False,
-        default=func.now(),
-        onupdate=func.now(),
+        default=get_current_timestamp,
+        onupdate=get_current_timestamp,
         comment="更新時間",
     )
