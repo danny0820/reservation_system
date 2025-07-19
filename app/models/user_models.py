@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Enum, DateTime, Boolean
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 from app.utils.timezone_utils import get_current_timestamp
@@ -35,3 +36,8 @@ class User(Base):
     notification = Column(String(50), nullable=True, comment="通知設定")
     created_at = Column(DateTime, nullable=False, default=get_current_timestamp, comment="創建時間")
     updated_at = Column(DateTime, nullable=False, default=get_current_timestamp, onupdate=get_current_timestamp, comment="更新時間")
+
+    # 關聯關係
+    customer_appointments = relationship("Appointment", foreign_keys="Appointment.user_id", back_populates="customer")
+    stylist_appointments = relationship("Appointment", foreign_keys="Appointment.stylist_id", back_populates="stylist")
+    orders = relationship("Order", back_populates="customer")

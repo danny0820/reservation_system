@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, Boolean, Text, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 from app.utils.timezone_utils import get_current_timestamp
@@ -32,3 +33,7 @@ class Product(Base):
         onupdate=get_current_timestamp,
         comment="更新時間",
     )
+
+    # 關聯關係
+    appointment_services = relationship("AppointmentService", back_populates="product")
+    order_details = relationship("OrderDetail", back_populates="product")

@@ -117,7 +117,6 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 async def get_admin_user(current_user: User = Depends(get_current_active_user)) -> User:
     """
     獲取管理員使用者。
-
     :param current_user: User, 當前活躍的使用者。
     :return: User, 管理員使用者。
     """

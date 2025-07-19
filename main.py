@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users, products, schedules, store
+from app.routers import users, products, schedules, store, appointments, orders, coupons
 from app.core.config import settings
 
 # 初始化 FastAPI 應用
@@ -31,6 +31,15 @@ app.include_router(schedules.router, prefix="/schedules", tags=["schedules"])
 # 引入門店路由
 app.include_router(store.router, prefix="/store", tags=["store"])
 
+# 引入預約路由
+app.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
+
+# 引入訂單路由
+app.include_router(orders.router, prefix="/orders", tags=["orders"])
+
+# 引入優惠券路由
+app.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
+
 @app.get("/")
 async def root():
     """
@@ -39,9 +48,13 @@ async def root():
     :return: dict, 包含 API 訊息、版本和環境。
     """
     return {
-        "message": "User Management API",
+        "message": "美髮預約系統 - 完整管理 API",
         "version": settings.APP_VERSION,
-        "environment": "production" if not settings.DEBUG else "development"
+        "environment": "production" if not settings.DEBUG else "development",
+        "modules": [
+            "users", "products", "schedules", "store", 
+            "appointments", "orders", "coupons"
+        ]
     }
 
 @app.get("/health")
